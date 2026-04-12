@@ -1,0 +1,44 @@
+name: Gerar APK Evolumin
+
+on:
+  push:
+    branches: [ main ]
+  workflow_dispatch:
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout código
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: 'npm'
+
+      - name: Instalar dependências
+        run: npm ci
+
+      - name: Build Next.js
+        run: npm run build
+
+      - name: Instalar Capacitor e configurar Android
+        run: |
+          npm install @capacitor/cli @capacitor/core @capacitor/android
+          npx cap init --web-dir out --app-id pt.evolumin.app --app-name "Evolumin"
+          npx cap add android
+
+      - name: Sync e Build APK
+        run: |
+          npx cap sync android
+          cd android
+          ./gradlew assembleDebug --stacktrace
+
+      - name: Upload APK
+        uses: actions/upload-artifact@v4
+        with:
+          name: evolumin-apk-debug
+          path: android/app/build/outputs/apk/debug/app-debug.apk
